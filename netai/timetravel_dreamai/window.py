@@ -136,7 +136,7 @@ class TimeTravelWindow:
                 self._goto_second.model.get_value_as_int()
             )
             
-            if self._event_checkbox.model.get_value() and self._core.has_events():
+            if self._event_checkbox.model.get_value_as_bool() and self._core.has_events():
                 # In event mode, go to next event
                 self._core.go_to_next_event()
             else:
@@ -171,7 +171,7 @@ class TimeTravelWindow:
     
     def _on_event_checkbox_changed(self, model):
         """Handle event summary checkbox change."""
-        use_events = model.get_value()
+        use_events = model.get_value_as_bool()
         self._core.set_use_event_summary(use_events)
         
         if use_events:
@@ -207,7 +207,7 @@ class TimeTravelWindow:
             self._updating_slider = True  # Prevent triggering _on_slider_changed
             self._time_slider.model.set_value(progress)
             self._updating_slider = False
-            self._update_goto_fields()
+            # self._update_goto_fields()
         
         # Update progress percentage
         progress_pct = self._core.get_progress() * 100
