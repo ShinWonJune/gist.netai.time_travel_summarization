@@ -228,11 +228,21 @@ class TimeTravelCore:
                 # Get position from data
                 x, y, z = data[objid]
                 
-                # Update xformOp:translate
+                # Update only xformOp:translate, preserve existing transforms
                 xformable = UsdGeom.Xformable(prim)
                 if xformable:
-                    xformable.ClearXformOpOrder()
-                    translate_op = xformable.AddTranslateOp()
+                    # Try to find existing translate op
+                    translate_op = None
+                    for op in xformable.GetOrderedXformOps():
+                        if op.GetOpType() == UsdGeom.XformOp.TypeTranslate:
+                            translate_op = op
+                            break
+                    
+                    # If no translate op exists, add one but preserve xformOpOrder
+                    if not translate_op:
+                        translate_op = xformable.AddTranslateOp()
+                    
+                    # Update the translate value
                     translate_op.Set(Gf.Vec3d(x, y, z))
                     
             except Exception as e:

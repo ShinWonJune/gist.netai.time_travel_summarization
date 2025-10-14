@@ -178,9 +178,9 @@ class TimeTravelWindow:
     def _update_play_button(self):
         """Update play button text."""
         if self._core.is_playing():
-            self._play_button.text = "⏸ Pause"
+            self._play_button.text = "Pause"
         else:
-            self._play_button.text = "▶ Play"
+            self._play_button.text = "Play"
     
     def _update_goto_fields(self):
         """Update goto time fields with current time."""
