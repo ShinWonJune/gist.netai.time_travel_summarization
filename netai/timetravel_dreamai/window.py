@@ -11,6 +11,7 @@ class TimeTravelWindow:
     def __init__(self, core):
         """Initialize the Time Travel window."""
         self._core = core
+        self._updating_slider = False  # Flag to prevent infinite loops
         
         # Create window
         self._window = ui.Window("Time Travel", width=500, height=450)
@@ -155,10 +156,13 @@ class TimeTravelWindow:
     
     def _on_slider_changed(self, model):
         """Handle slider value change."""
-        if not self._core.is_playing():
-            progress = model.get_value_as_float()
-            self._core.set_progress(progress)
-            self._update_goto_fields()
+        # Prevent infinite loop when updating slider programmatically
+        if self._updating_slider:
+            return
+            
+        progress = model.get_value_as_float()
+        self._core.set_progress(progress)
+        self._update_goto_fields()
     
     def _on_speed_changed(self, model):
         """Handle speed value change."""
@@ -197,10 +201,12 @@ class TimeTravelWindow:
         # Update stage time display
         self._stage_time_label.text = self._core.get_stage_time_string()
         
-        # Update slider if playing
+        # Update slider if playing (but don't interfere with user dragging)
         if self._core.is_playing():
             progress = self._core.get_progress()
+            self._updating_slider = True  # Prevent triggering _on_slider_changed
             self._time_slider.model.set_value(progress)
+            self._updating_slider = False
             self._update_goto_fields()
         
         # Update progress percentage
