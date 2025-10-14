@@ -1,8 +1,8 @@
 {
   "data_path": "./data/merged_trajectory.csv",
   "prim_map": {
-    "obj001": "/World/Equipment/Astronaut001",
-    "obj002": "/World/Equipment/Astronaut002"
+    "obj001": "/World/Equipment/Included_In_AI_Grad_Building_usd/Astronaut001",
+    "obj002": "/World/Equipment/Included_In_AI_Grad_Building_usd/Astronaut002"
 
   },
   "event_summary": [

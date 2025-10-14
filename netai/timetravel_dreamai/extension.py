@@ -6,6 +6,8 @@ import omni.ui as ui
 import omni.usd
 from pxr import Usd, UsdGeom, Gf
 import carb
+import os
+from pathlib import Path
 from .window import TimeTravelWindow
 from .core import TimeTravelCore
 
@@ -17,19 +19,30 @@ class NetAITimetravelDreamAI(omni.ext.IExt):
         """Initialize the extension."""
         print("[netai.timetravel_dreamai] Extension startup")
         
+        # Print current working directory and extension path
+        current_dir = os.getcwd()
+        extension_file = Path(__file__).absolute()
+        extension_dir = extension_file.parent
+    
+        
         # Initialize core logic
-        self._core = TimeTravelCore()
+        self._core = TimeTravelCore() 
         
         # Load configuration and data
-        if self._core.load_config("./data/config.json"):
-            self._core.load_data()
+        config_path = extension_dir / "config.json"  # 익스텐션 디렉터리 기준
+        
+        if self._core.load_config(str(config_path)): # self._core._config, self._core._prim_map 생성됨
+            self._core.load_data()  #self._core._data, self._core._timestamps 생성됨
         
         # Create UI window
         self._window = TimeTravelWindow(self._core)
         
-        # Start update loop
-        self._update_sub = omni.kit.app.get_app().get_update_event_stream().create_subscription_to_pop(
-            self._on_update, name="timetravel_update"
+        # Start update loop (Events 2.0)
+        import omni.kit.app
+        self._update_sub = (
+            omni.kit.app.get_app_interface()
+            .get_update_event_stream()
+            .create_subscription_to_pop(self._on_update)
         )
         
         # Set initial time to earliest timestamp

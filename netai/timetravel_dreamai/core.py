@@ -45,10 +45,11 @@ class TimeTravelCore:
                 self._config = json.load(f)
             
             # Extract prim mapping
-            self._prim_map = self._config.get('prim_map', {})
+            self._prim_map = self._config.get('prim_map', {}) # {objid: prim_path} 가져옴
             
             # Extract event summary
-            self._event_summary = self._config.get('event_summary', [])
+            # 이벤트 타임스탬프 리스트 가져옴. 현재는 이벤트 서머리에 타임스탬프 뿐이지만, 위치도 포함 예정
+            self._event_summary = self._config.get('event_summary', []) 
             if not self._event_summary:
                 carb.log_info("[TimeTravel] No events defined in config")
             
@@ -63,10 +64,18 @@ class TimeTravelCore:
         """Load trajectory data from CSV file."""
         try:
             data_path = self._config.get('data_path', './data/merged_trajectory.csv')
-            path = Path(data_path)
+            
+            # Convert to absolute path based on current file location
+            if not Path(data_path).is_absolute():
+                current_file_dir = Path(__file__).parent
+                path = current_file_dir / data_path.lstrip('./')
+            else:
+                path = Path(data_path)
+            
+            carb.log_info(f"[TimeTravel] Looking for data file at: {path}")
             
             if not path.exists():
-                carb.log_error(f"[TimeTravel] Data file not found: {data_path}")
+                carb.log_error(f"[TimeTravel] Data file not found: {path}")
                 return False
             
             # Load CSV data into memory
@@ -85,11 +94,15 @@ class TimeTravelCore:
                     self._data[timestamp][objid] = (x, y, z)
             
             # Sort timestamps for efficient searching
-            self._timestamps = sorted(self._data.keys())
+            # timestamps는 정렬되어있다고 가정
+            # self._timestamps = sorted(self._data.keys()) #sorted 는 list를 반환
+            self._timestamps = list(self._data.keys()) # dict_keys 객체 - 인덱싱 불가능. key를 list로 변환만
             
             if self._timestamps:
                 self._start_time = self._parse_timestamp(self._timestamps[0])
+                print(self._start_time)
                 self._end_time = self._parse_timestamp(self._timestamps[-1])
+                print(self._end_time)
                 self._current_time = self._start_time
             
             carb.log_info(f"[TimeTravel] Data loaded: {len(self._timestamps)} timestamps, {self._start_time} to {self._end_time}")
@@ -100,12 +113,12 @@ class TimeTravelCore:
             return False
     
     def _parse_timestamp(self, timestamp_str: str) -> datetime.datetime:
-        """Parse timestamp string to datetime object."""
+        """Parse timestamp string to datetime object. Manages timestamp formats."""
         try:
-            # Handle ISO format with 'T' separator
+            # "2025-01-01T00:00:00Z" -> "2025-01-01T00:00:00+00:00" -> Datetime 객체
             return datetime.datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
         except:
-            # Fallback to standard format
+            # timestamp_str이 "2025-01-01 00:00:00" 형식일 때 datetime 객체로 변환
             return datetime.datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
     
     def _format_timestamp(self, dt: datetime.datetime) -> str:
@@ -120,11 +133,11 @@ class TimeTravelCore:
             return False
         
         # Clamp to data range
-        if self._data_start_time and self._data_end_time:
+        if self._start_time and self._end_time:
             # Auto-adjust to data boundaries
-            adjusted_start = max(start_time, self._data_start_time)
-            adjusted_end = min(end_time, self._data_end_time)
-            
+            adjusted_start = max(start_time, self._start_time)
+            adjusted_end = min(end_time, self._end_time)
+
             # Log if adjustment was made
             if adjusted_start != start_time:
                 carb.log_info(f"[TimeTravel] Start time adjusted to data minimum: {adjusted_start}")
@@ -150,13 +163,19 @@ class TimeTravelCore:
     
     def get_data_start_time(self) -> datetime.datetime:
         """Get original data start time."""
-        return self._data_start_time or datetime.datetime.now()
+        return self._start_time or datetime.datetime.now()
     
     def get_data_end_time(self) -> datetime.datetime:
         """Get original data end time."""
-        return self._data_end_time or datetime.datetime.now()
-        """Get object positions at specific timestamp (API for future AI integration)."""
-        # Normalize to seconds (remove milliseconds)
+        return self._end_time or datetime.datetime.now()
+    
+    def get_data_at_time(self, timestamp: datetime.datetime) -> Dict:
+        """
+        Get object positions at specific timestamp (API for future AI integration).
+        Removed microseconds for matching.
+        Adjust matching second unit as needed.
+        """
+        # Normalize to seconds (remove microseconds) 여기서 매칭 단위 설정
         normalized_time = timestamp.replace(microsecond=0)
         timestamp_str = self._format_timestamp(normalized_time)
         
@@ -203,7 +222,7 @@ class TimeTravelCore:
             try:
                 prim = self._stage.GetPrimAtPath(prim_path)
                 if not prim or not prim.IsValid():
-                    carb.log_warn_once(f"[TimeTravel] Prim not found: {prim_path}")
+                    carb.log_warn(f"[TimeTravel] Prim not found: {prim_path}")
                     continue
                 
                 # Get position from data
@@ -217,7 +236,7 @@ class TimeTravelCore:
                     translate_op.Set(Gf.Vec3d(x, y, z))
                     
             except Exception as e:
-                carb.log_error_once(f"[TimeTravel] Failed to update {objid}: {e}")
+                carb.log_error(f"[TimeTravel] Failed to update {objid}: {e}")
     
     def set_to_earliest_time(self):
         """Set stage to earliest timestamp."""
@@ -262,16 +281,20 @@ class TimeTravelCore:
         self._accumulated_time = 0.0
     
     def update(self, dt: float):
-        """Update playback (called every frame)."""
+        """ 
+        재생시 0.1초 단위로 화면을 업데이트. 추후에 변화가 감지 기반 업데이트 로직으로 변경 가능
+        - 0.1초 단위로 업데이트하는 이유는 너무 자주 업데이트하면 성능에 부담이 될 수 있기 때문.
+        - 변화 감지 기반 업데이트의 장점은 더 자연스러운 움직임.
+        """
         if not self._is_playing or not self._current_time:
             return
         
         self._accumulated_time += dt * self._playback_speed
         
-        # Update every second (or when accumulated time >= 1 second)
-        if self._accumulated_time >= 1.0:
-            seconds_to_add = int(self._accumulated_time)
-            self._accumulated_time -= seconds_to_add
+        # Update every 0.1 second (or when accumulated time >= 0.1 second)
+        if self._accumulated_time >= 0.1:
+            seconds_to_add = self._accumulated_time
+            self._accumulated_time = 0.0  # Reset accumulated time
             
             if self._use_event_summary and self._event_summary:
                 # Jump to next event

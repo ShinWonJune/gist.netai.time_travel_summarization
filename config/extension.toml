@@ -57,7 +57,8 @@ modules = [
     "pandas", 
     "pyarrow",
     "minio",
-    "psutil"
+    "psutil",
+    "carb"
 ]
 
 use_online_index = true
