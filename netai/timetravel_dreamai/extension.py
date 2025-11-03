@@ -147,6 +147,10 @@ class NetAITimetravelDreamAI(omni.ext.IExt):
             self._overlay = None
         
         # Clean up core
-        if hasattr(self, '_core'):
-            self._core = None
+        if hasattr(self, '_core') and self._core:
+            try:
+                self._core.clear_timetravel_objects()
+                carb.log_info("[Extension] TimeTravel objects cleared")
+            except Exception as e:
+                carb.log_error(f"[Extension] Error clearing TimeTravel objects: {e}")
             self._core = None

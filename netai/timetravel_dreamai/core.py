@@ -393,7 +393,8 @@ class TimeTravelCore:
             return []
     
     def clear_timetravel_objects(self):
-        """Clear existing TimeTravel_Objects."""
+        """Clear existing TimeTravel_Objects and reset memory data."""
+        # Remove prims from stage
         if not self._stage:
             self._stage = self._usd_context.get_stage()
         
@@ -403,6 +404,25 @@ class TimeTravelCore:
         if parent_prim and parent_prim.IsValid():
             for child in parent_prim.GetChildren():
                 self._stage.RemovePrim(child.GetPath())
+            carb.log_info("[TimeTravel] Removed all TimeTravel prims")
+        
+        # Clear memory data
+        self._data.clear()
+        self._timestamps.clear()
+        self._prim_map.clear()
+        self._event_summary.clear()
+        
+        # Reset time tracking
+        self._start_time = None
+        self._end_time = None
+        self._current_time = None
+        self._current_event_index = 0
+        
+        # Reset playback state
+        self._is_playing = False
+        self._accumulated_time = 0.0
+        
+        carb.log_info("[TimeTravel] Memory data cleared")
     
     def create_astronaut_prim(self, index: int) -> str:
         """Create Astronaut prim with Reference."""
