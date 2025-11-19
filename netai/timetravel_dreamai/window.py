@@ -70,17 +70,16 @@ class TimeTravelWindow:
                     self._goto_button.set_clicked_fn(self._on_goto_clicked)
                 
                 # Event Summary checkbox with Next Event button
-                with ui.HStack(height=25):
+                with ui.HStack(height=25, spacing=10):
                     self._event_checkbox = ui.CheckBox(width=20)
                     self._event_checkbox.model.set_value(False)
                     self._event_checkbox.model.add_value_changed_fn(self._on_event_checkbox_changed)
                     
                     if self._core.has_events():
-                        self._event_label = ui.Label(f"Event Summary Mode ({len(self._core.get_summary_events())} events)")
+                        self._event_label = ui.Label(f"Event Summary Mode ({len(self._core.get_summary_events())} events)", width=0)
                     else:
-                        self._event_label = ui.Label("Event Summary (Check to load events)", style={"color": 0xFF888888})
+                        self._event_label = ui.Label("Event Summary (Check to load events)", width=0, style={"color": 0xFF888888})
                     
-                    ui.Spacer(width=20)
                     self._next_event_button = ui.Button("Next Event", width=100)
                     self._next_event_button.set_clicked_fn(self._on_next_event_clicked)
                     self._next_event_button.enabled = False  # Initially disabled
