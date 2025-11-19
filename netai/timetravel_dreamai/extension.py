@@ -11,6 +11,8 @@ from pathlib import Path
 from .window import TimeTravelWindow
 from .core import TimeTravelCore
 from .event_window import EventProcessingWindow
+from .vlm_client_core import VLMClientCore
+from .vlm_client_window import VLMClientWindow
 
 # Optional imports for overlay (with error handling)
 try:
@@ -60,6 +62,11 @@ class NetAITimetravelDreamAI(omni.ext.IExt):
         # Create Event Processing window
         self._event_window = EventProcessingWindow(self._core, ext_id)
         carb.log_info("[Extension] Event Processing window created")
+        
+        # Create VLM Client
+        self._vlm_client_core = VLMClientCore()
+        self._vlm_client_window = VLMClientWindow(self._vlm_client_core, ext_id)
+        carb.log_info("[Extension] VLM Client window created")
         
         # Try to create overlay components (OPTIONAL - won't break if it fails)
         self._overlay = None
@@ -138,6 +145,18 @@ class NetAITimetravelDreamAI(omni.ext.IExt):
             except Exception as e:
                 carb.log_error(f"[Extension] Error destroying event window: {e}")
             self._event_window = None
+        
+        # Clean up VLM Client window
+        if hasattr(self, '_vlm_client_window') and self._vlm_client_window:
+            try:
+                self._vlm_client_window.destroy()
+            except Exception as e:
+                carb.log_error(f"[Extension] Error destroying VLM client window: {e}")
+            self._vlm_client_window = None
+        
+        # Clean up VLM Client core
+        if hasattr(self, '_vlm_client_core'):
+            self._vlm_client_core = None
         
         # Clean up overlay window (OPTIONAL)
         if hasattr(self, '_overlay_control') and self._overlay_control:
