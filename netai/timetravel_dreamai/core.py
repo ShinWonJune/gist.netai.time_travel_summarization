@@ -379,6 +379,64 @@ class TimeTravelCore:
         """Get list of event timestamps (API for future AI integration)."""
         return self._event_summary.copy()
     
+    def load_events_from_positions_jsonl(self) -> bool:
+        """
+        Load event timestamps from Events directory positions.jsonl files.
+        Searches for the most recent positions.jsonl file.
+        
+        Returns:
+            True if events were loaded, False otherwise
+        """
+        try:
+            from pathlib import Path
+            import json
+            
+            # Get Events directory path
+            current_file_dir = Path(__file__).parent
+            events_dir = current_file_dir / "Events"
+            
+            if not events_dir.exists():
+                carb.log_info("[TimeTravel] Events directory not found")
+                return False
+            
+            # Find all positions.jsonl files
+            position_files = list(events_dir.glob("*_positions.jsonl"))
+            
+            if not position_files:
+                carb.log_info("[TimeTravel] No position files found in Events directory")
+                return False
+            
+            # Use the most recent file (by modification time)
+            latest_file = max(position_files, key=lambda p: p.stat().st_mtime)
+            
+            carb.log_info(f"[TimeTravel] Loading events from: {latest_file.name}")
+            
+            # Load timestamps from positions file
+            event_timestamps = []
+            with open(latest_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    entry = json.loads(line)
+                    timestamp = entry.get('timestamp')
+                    if timestamp:
+                        event_timestamps.append(timestamp)
+            
+            if not event_timestamps:
+                carb.log_warn("[TimeTravel] No timestamps found in position file")
+                return False
+            
+            # Update event summary
+            self._event_summary = event_timestamps
+            self._current_event_index = 0
+            
+            carb.log_info(f"[TimeTravel] Loaded {len(event_timestamps)} event timestamps")
+            return True
+            
+        except Exception as e:
+            carb.log_error(f"[TimeTravel] Failed to load events: {e}")
+            import traceback
+            carb.log_error(traceback.format_exc())
+            return False
+    
     def parse_unique_objids(self, csv_path: str) -> List[str]:
         """Extract unique objids from CSV."""
         objids = set()

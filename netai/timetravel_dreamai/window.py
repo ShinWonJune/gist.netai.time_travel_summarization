@@ -76,10 +76,9 @@ class TimeTravelWindow:
                     self._event_checkbox.model.add_value_changed_fn(self._on_event_checkbox_changed)
                     
                     if self._core.has_events():
-                        ui.Label(f"Event Summary Mode ({len(self._core.get_summary_events())} events)")
+                        self._event_label = ui.Label(f"Event Summary Mode ({len(self._core.get_summary_events())} events)")
                     else:
-                        self._event_checkbox.enabled = False
-                        ui.Label("Event Summary (No events defined)", style={"color": 0xFF666666})
+                        self._event_label = ui.Label("Event Summary (Check to load events)", style={"color": 0xFF888888})
                 
                 # Separator
                 ui.Spacer(height=5)
@@ -171,13 +170,40 @@ class TimeTravelWindow:
     
     def _on_event_checkbox_changed(self, model):
         """Handle event summary checkbox change."""
-        use_events = model.get_value_as_bool()
-        self._core.set_use_event_summary(use_events)
+        requested_value = model.get_value_as_bool()
         
-        if use_events:
-            carb.log_info("[TimeTravel] Event Summary Mode enabled")
+        if requested_value:
+            # User wants to enable event mode - check if events exist
+            if not self._core.has_events():
+                # Try to load events from Events directory
+                if self._core.load_events_from_positions_jsonl():
+                    # Successfully loaded events
+                    self._core.set_use_event_summary(True)
+                    carb.log_info("[TimeTravel] Event Summary Mode enabled")
+                    # Update label to show event count
+                    self._update_event_label()
+                else:
+                    # No events found - revert checkbox
+                    model.set_value(False)
+                    carb.log_warn("[TimeTravel] No events available - Event Summary Mode disabled")
+            else:
+                # Events already exist
+                self._core.set_use_event_summary(True)
+                carb.log_info("[TimeTravel] Event Summary Mode enabled")
         else:
+            # User wants to disable event mode
+            self._core.set_use_event_summary(False)
             carb.log_info("[TimeTravel] Event Summary Mode disabled")
+    
+    def _update_event_label(self):
+        """Update event label with current event count."""
+        if self._core.has_events():
+            event_count = len(self._core.get_summary_events())
+            self._event_label.text = f"Event Summary Mode ({event_count} events)"
+            self._event_label.style = {"color": 0xFFFFFFFF}
+        else:
+            self._event_label.text = "Event Summary (Check to load events)"
+            self._event_label.style = {"color": 0xFF888888}
     
     def _update_play_button(self):
         """Update play button text."""
