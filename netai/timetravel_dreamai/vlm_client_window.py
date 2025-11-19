@@ -54,7 +54,7 @@ class VLMClientWindow:
                 
                 with ui.HStack(height=22, spacing=5):
                     ui.Label("Model:", width=50)
-                    self._model_combo = ui.ComboBox(0, "gpt-4o", "Qwen3-VL-8B-Instruct")
+                    self._model_combo = ui.ComboBox(1, "gpt-4o", "Qwen3-VL-8B-Instruct")
                 
                 with ui.HStack(height=22, spacing=5):
                     ui.Label("Preset:", width=50)
@@ -128,7 +128,7 @@ class VLMClientWindow:
         model_index = self._model_combo.model.get_item_value_model().as_int
         preset_index = self._preset_combo.model.get_item_value_model().as_int
         
-        models = ["gpt-4o", "Qwen3-VL-8B-Instruct"]
+        models = ["Qwen3-VL-8B-Instruct","gpt-4o"]
         presets = ["simple_view", "twin_view"]
         
         model = models[model_index]
@@ -140,14 +140,14 @@ class VLMClientWindow:
         video_filename = self._video_filename_field.model.get_value_as_string()
         
         # Generate captions
-        success = self._vlm_core.generate_captions(
+        success, output_filename = self._vlm_core.generate_captions(
             model=model,
             preset_name=preset,
             video_filename=video_filename
         )
         
-        if success:
-            self._update_status(f"Generation complete! Check outputs/", is_error=False)
+        if success and output_filename:
+            self._update_status(f"Saved: {output_filename}", is_error=False)
         else:
             self._update_status("Generation failed. Check console for details.", is_error=True)
     

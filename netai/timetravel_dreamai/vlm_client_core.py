@@ -217,10 +217,10 @@ Do not include any reasoning or description; output **only** the JSON results.
     
     def generate_captions(
         self,
-        model: str = "gpt-4o",
+        model: str = "Qwen3-VL-8B-Instruct",
         preset_name: str = "simple_view",
         video_filename: Optional[str] = None
-    ) -> bool:
+    ) -> tuple[bool, Optional[str]]:
         """
         Generate VLM captions for current video.
         
@@ -230,15 +230,15 @@ Do not include any reasoning or description; output **only** the JSON results.
             video_filename: Optional video filename for output naming
             
         Returns:
-            True if successful, False otherwise
+            Tuple of (success: bool, output_filename: Optional[str])
         """
         if not self._client:
             carb.log_error("[VLMClient] Client not initialized")
-            return False
+            return False, None
         
         if not self._current_video_id:
             carb.log_error("[VLMClient] No video uploaded")
-            return False
+            return False, None
         
         try:
             carb.log_info(f"[VLMClient] Generating captions for video ID: {self._current_video_id}")
@@ -275,13 +275,13 @@ Do not include any reasoning or description; output **only** the JSON results.
             exec_time = response.get("execution_time", 0)
             carb.log_info(f"[VLMClient] Execution time: {exec_time:.2f} seconds")
             
-            return True
+            return True, output_filename
             
         except Exception as e:
             carb.log_error(f"[VLMClient] Generation failed: {e}")
             import traceback
             carb.log_error(traceback.format_exc())
-            return False
+            return False, None
     
     def get_current_video_id(self) -> Optional[str]:
         """Get current video ID."""
