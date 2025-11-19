@@ -69,7 +69,7 @@ class TimeTravelWindow:
                     self._goto_button = ui.Button("Go", width=50)
                     self._goto_button.set_clicked_fn(self._on_goto_clicked)
                 
-                # Event Summary checkbox
+                # Event Summary checkbox with Next Event button
                 with ui.HStack(height=25):
                     self._event_checkbox = ui.CheckBox(width=20)
                     self._event_checkbox.model.set_value(False)
@@ -79,6 +79,11 @@ class TimeTravelWindow:
                         self._event_label = ui.Label(f"Event Summary Mode ({len(self._core.get_summary_events())} events)")
                     else:
                         self._event_label = ui.Label("Event Summary (Check to load events)", style={"color": 0xFF888888})
+                    
+                    ui.Spacer(width=20)
+                    self._next_event_button = ui.Button("Next Event", width=100)
+                    self._next_event_button.set_clicked_fn(self._on_next_event_clicked)
+                    self._next_event_button.enabled = False  # Initially disabled
                 
                 # Separator
                 ui.Spacer(height=5)
@@ -124,7 +129,7 @@ class TimeTravelWindow:
                     ui.Spacer()
     
     def _on_goto_clicked(self):
-        """Handle Go button click."""
+        """Handle Go button click - go to user-specified time."""
         try:
             goto_time = datetime.datetime(
                 self._goto_year.model.get_value_as_int(),
@@ -135,18 +140,25 @@ class TimeTravelWindow:
                 self._goto_second.model.get_value_as_int()
             )
             
-            if self._event_checkbox.model.get_value_as_bool() and self._core.has_events():
-                # In event mode, go to next event
-                self._core.go_to_next_event()
-            else:
-                # Normal go to time
-                self._core.set_current_time(goto_time)
+            # Always go to the specified time
+            self._core.set_current_time(goto_time)
             
             # Update slider
             self._time_slider.model.set_value(self._core.get_progress())
             
         except Exception as e:
             carb.log_error(f"[TimeTravel] Error setting time: {e}")
+    
+    def _on_next_event_clicked(self):
+        """Handle Next Event button click - jump to next event."""
+        if self._core.has_events():
+            self._core.go_to_next_event()
+            
+            # Update slider
+            self._time_slider.model.set_value(self._core.get_progress())
+            
+            # Update goto fields to reflect new time
+            self._update_goto_fields()
     
     def _on_play_clicked(self):
         """Handle Play/Pause button click."""
@@ -182,17 +194,22 @@ class TimeTravelWindow:
                     carb.log_info("[TimeTravel] Event Summary Mode enabled")
                     # Update label to show event count
                     self._update_event_label()
+                    # Enable Next Event button
+                    self._next_event_button.enabled = True
                 else:
                     # No events found - revert checkbox
                     model.set_value(False)
                     carb.log_warn("[TimeTravel] No events available - Event Summary Mode disabled")
+                    self._next_event_button.enabled = False
             else:
                 # Events already exist
                 self._core.set_use_event_summary(True)
                 carb.log_info("[TimeTravel] Event Summary Mode enabled")
+                self._next_event_button.enabled = True
         else:
             # User wants to disable event mode
             self._core.set_use_event_summary(False)
+            self._next_event_button.enabled = False
             carb.log_info("[TimeTravel] Event Summary Mode disabled")
     
     def _update_event_label(self):
