@@ -82,7 +82,7 @@ class EventProcessingWindow:
             success = self._core.process_event_json(str(json_path))
             
             if success:
-                self._update_status("✓ Events processed successfully!\n" + 
+                self._update_status("Events processed successfully!\n" + 
                                   f"- JSONL saved\n" +
                                   f"- Position data extracted\n" +
                                   f"Check outputs/ folder for results.", 

@@ -2,6 +2,7 @@
 
 import omni.ui as ui
 import carb
+import threading
 
 
 class VLMClientWindow:
@@ -79,21 +80,30 @@ class VLMClientWindow:
         
         self._update_status("Uploading video...", is_processing=True)
         
-        # Upload video
-        success = self._vlm_core.upload_video(video_filename)
+        # Disable upload button during processing
+        self._upload_button.enabled = False
         
-        if success:
-            video_id = self._vlm_core.get_current_video_id()
-            self._video_id_label.text = video_id
-            self._video_id_label.style = {"color": 0xFF00AA00}
+        # Run upload in separate thread to avoid blocking UI
+        def upload_async():
+            success = self._vlm_core.upload_video(video_filename)
             
-            # Enable delete and generate buttons
-            self._delete_button.enabled = True
-            self._generate_button.enabled = True
-            
-            self._update_status(f"Upload successful! ID: {video_id[:8]}...", is_error=False)
-        else:
-            self._update_status("Upload failed. Check console for details.", is_error=True)
+            # Update UI with results
+            self._upload_button.enabled = True
+            if success:
+                video_id = self._vlm_core.get_current_video_id()
+                self._video_id_label.text = video_id
+                self._video_id_label.style = {"color": 0xFF00AA00}
+                
+                # Enable delete and generate buttons
+                self._delete_button.enabled = True
+                self._generate_button.enabled = True
+                
+                self._update_status(f"Upload successful! ID: {video_id[:8]}...", is_error=False)
+            else:
+                self._update_status("Upload failed. Check console for details.", is_error=True)
+        
+        thread = threading.Thread(target=upload_async, daemon=True)
+        thread.start()
     
     def _on_delete_clicked(self):
         """Handle Delete button click."""
@@ -103,20 +113,29 @@ class VLMClientWindow:
         
         self._update_status("Deleting video...", is_processing=True)
         
-        # Delete video
-        success = self._vlm_core.delete_video()
+        # Disable delete button during processing
+        self._delete_button.enabled = False
         
-        if success:
-            self._video_id_label.text = "Not uploaded"
-            self._video_id_label.style = {"color": 0xFF888888}
+        # Run delete in separate thread to avoid blocking UI
+        def delete_async():
+            success = self._vlm_core.delete_video()
             
-            # Disable delete and generate buttons
-            self._delete_button.enabled = False
-            self._generate_button.enabled = False
-            
-            self._update_status("Video deleted successfully", is_error=False)
-        else:
-            self._update_status("Delete failed. Check console for details.", is_error=True)
+            # Update UI with results
+            if success:
+                self._video_id_label.text = "Not uploaded"
+                self._video_id_label.style = {"color": 0xFF888888}
+                
+                # Disable generate button (delete button already disabled)
+                self._generate_button.enabled = False
+                
+                self._update_status("Video deleted successfully", is_error=False)
+            else:
+                # Re-enable delete button on failure
+                self._delete_button.enabled = True
+                self._update_status("Delete failed. Check console for details.", is_error=True)
+        
+        thread = threading.Thread(target=delete_async, daemon=True)
+        thread.start()
     
     def _on_generate_clicked(self):
         """Handle Generate button click."""
@@ -128,7 +147,7 @@ class VLMClientWindow:
         model_index = self._model_combo.model.get_item_value_model().as_int
         preset_index = self._preset_combo.model.get_item_value_model().as_int
         
-        models = ["Qwen3-VL-8B-Instruct","gpt-4o"]
+        models = ["gpt-4o", "Qwen3-VL-8B-Instruct"]
         presets = ["simple_view", "twin_view"]
         
         model = models[model_index]
@@ -136,20 +155,29 @@ class VLMClientWindow:
         
         self._update_status(f"Generating with {model}...", is_processing=True)
         
+        # Disable generate button during processing
+        self._generate_button.enabled = False
+        
         # Get video filename for output naming
         video_filename = self._video_filename_field.model.get_value_as_string()
         
-        # Generate captions
-        success, output_filename = self._vlm_core.generate_captions(
-            model=model,
-            preset_name=preset,
-            video_filename=video_filename
-        )
+        # Run generation in separate thread to avoid blocking UI
+        def generate_async():
+            success, output_filename = self._vlm_core.generate_captions(
+                model=model,
+                preset_name=preset,
+                video_filename=video_filename
+            )
+            
+            # Update UI with results (simple assignment is thread-safe for display)
+            self._generate_button.enabled = True
+            if success and output_filename:
+                self._update_status(f"Saved: {output_filename}", is_error=False)
+            else:
+                self._update_status("Generation failed. Check console for details.", is_error=True)
         
-        if success and output_filename:
-            self._update_status(f"Saved: {output_filename}", is_error=False)
-        else:
-            self._update_status("Generation failed. Check console for details.", is_error=True)
+        thread = threading.Thread(target=generate_async, daemon=True)
+        thread.start()
     
     def _update_status(self, message: str, is_error: bool = False, is_processing: bool = False):
         """Update status label with color."""

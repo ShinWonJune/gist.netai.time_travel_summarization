@@ -279,6 +279,8 @@ Do not include any reasoning or description; output **only** the JSON results.
             
         except Exception as e:
             carb.log_error(f"[VLMClient] Generation failed: {e}")
+            carb.log_error(f"[VLMClient] Video ID: {self._current_video_id}")
+            carb.log_error(f"[VLMClient] Model: {model}, Preset: {preset_name}")
             import traceback
             carb.log_error(traceback.format_exc())
             return False, None

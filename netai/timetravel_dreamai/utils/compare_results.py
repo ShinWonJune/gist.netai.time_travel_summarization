@@ -29,37 +29,42 @@ def parse_ground_truth(gt_text: str) -> Dict[str, Set[int]]:
 def parse_prediction_json(json_path: str) -> Dict[str, Set[int]]:
     """
     예측 결과 JSON 파일을 파싱
-    
-    Args:
-        json_path: JSON 파일 경로
-    
-    Returns:
-        {timestamp: set of object ids}
+    - content가 코드블록(````json ... ````)인지
+    - 일반 JSON 배열 문자열인지 둘 다 처리
     """
     with open(json_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
-    
+
     predictions = {}
-    
+
     for chunk in data.get('chunk_responses', []):
-        content = chunk.get('content', '')
-        
-        # JSON 코드 블록에서 실제 JSON 추출
+        content = chunk.get('content', '').strip()
+
+        # 1) 코드블록 JSON 처리
         json_match = re.search(r'```json\s*(\[.*?\])\s*```', content, re.DOTALL)
         if json_match:
             json_str = json_match.group(1)
-            try:
-                items = json.loads(json_str)
-                for item in items:
-                    if isinstance(item, dict):
-                        for timestamp, obj_ids in item.items():
-                            predictions[timestamp] = set(obj_ids)
-            except json.JSONDecodeError as e:
-                print(f"JSON 파싱 오류: {e}")
-                print(f"내용: {json_str}")
-    
-    return predictions
+        else:
+            # 2) 일반 JSON 문자열일 경우
+            # content 자체가 JSON 배열인지 확인
+            if content.startswith('[') and content.endswith(']'):
+                json_str = content
+            else:
+                # JSON이 아예 없으면 그냥 skip
+                continue
 
+        # JSON 로드 시도
+        try:
+            items = json.loads(json_str)
+            for item in items:
+                if isinstance(item, dict):
+                    for timestamp, obj_ids in item.items():
+                        predictions[timestamp] = set(obj_ids)
+        except json.JSONDecodeError as e:
+            print(f"JSON 파싱 오류: {e}")
+            print(f"문제 content:\n{content}")
+
+    return predictions
 
 def calculate_metrics(ground_truth: Dict[str, Set[int]], 
                      predictions: Dict[str, Set[int]]) -> Tuple[float, float, float, Dict]:
@@ -177,7 +182,7 @@ def print_comparison_report(precision: float, recall: float, f1: float, details:
 
 def main():
     # 정답지 (사용자가 제공한 데이터)
-    ground_truth_text = """
+    ground_truth_text_1 = """
 00:00:28 1,4
 00:00:30 2,4
 00:00:31 2,4
@@ -191,33 +196,73 @@ def main():
 00:00:56 1,2
 00:00:57 1,2
     """
-    
-    # 예측 결과 파일 경로
-    prediction_file = Path(__file__).parent.parent / "outputs" / "gpt_video_21_20251114_010528.json"
-    
-    # 파싱
-    ground_truth = parse_ground_truth(ground_truth_text)
-    predictions = parse_prediction_json(str(prediction_file))
-    
-    # 메트릭 계산
-    precision, recall, f1, details = calculate_metrics(ground_truth, predictions)
-    
-    # 결과 출력
-    print_comparison_report(precision, recall, f1, details)
-    
-    # 결과를 JSON으로도 저장
-    result_file = Path(__file__).parent.parent / "compare_outputs" / "comparison_result.json"
-    with open(result_file, 'w', encoding='utf-8') as f:
-        json.dump({
-            'metrics': {
-                'precision': precision,
-                'recall': recall,
-                'f1_score': f1
-            },
-            'details': details
-        }, f, indent=2, ensure_ascii=False)
-    
-    print(f"\n상세 결과가 저장되었습니다: {result_file}")
+    ground_truth_text_2 = """
+00:00:01 1,2
+00:00:02 1,2
+00:00:31 2,3
+00:00:41 1,3
+00:00:48 1,2
+00:00:54 3,4
+00:00:55 3,4
+    """
+    ground_truth_text_3 = """
+00:00:06 1,4
+00:00:15 1,3
+00:00:19 3,4
+00:00:21 2,4
+00:00:23 2,3
+00:00:24 2,3
+00:00:43 1,3
+00:00:45 2,4
+00:00:57 3,4
+    """
+
+    # outputs 폴더 (utils와 같은 상위 디렉토리)
+    outputs_dir = Path(__file__).parent.parent / "outputs"
+
+    # compare_outputs 폴더 생성
+    compare_outputs_dir = Path(__file__).parent.parent / "compare_outputs"
+    compare_outputs_dir.mkdir(exist_ok=True)
+
+    # outputs 폴더 내 모든 json 파일 순회
+    json_files = sorted(outputs_dir.glob("*.json"))
+
+    if not json_files:
+        print("⚠️ outputs 폴더에 JSON 파일이 없습니다.")
+        return
+
+    for json_file in json_files:
+        print(f"\n📄 처리 중: {json_file.name}")
+
+        # 파싱
+        ground_truth = parse_ground_truth(ground_truth_text_2)
+        predictions = parse_prediction_json(str(json_file))
+
+        # 메트릭 계산
+        precision, recall, f1, details = calculate_metrics(ground_truth, predictions)
+
+        # 결과 출력
+        print_comparison_report(precision, recall, f1, details)
+
+        # 결과 파일명: {json파일명}__comparison_result.json
+        result_filename = f"{json_file.stem}__comparison_result.json"
+        result_file = compare_outputs_dir / result_filename
+
+        # JSON 저장
+        with open(result_file, 'w', encoding='utf-8') as f:
+            json.dump({
+                'source_file': json_file.name,
+                'metrics': {
+                    'precision': precision,
+                    'recall': recall,
+                    'f1_score': f1
+                },
+                'details': details
+            }, f, indent=2, ensure_ascii=False)
+
+        print(f"📁 결과 저장 완료: {result_file}")
+
+    print("\n🎉 모든 파일 처리 완료!")
 
 
 if __name__ == "__main__":

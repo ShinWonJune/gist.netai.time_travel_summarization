@@ -237,7 +237,10 @@ def main():
     if args.output:
         output_path = args.output
     else:
-        output_path = str(input_path.parent / f"{input_path.stem}_processed.jsonl")
+        # Create output_processed directory at the same level as outputs
+        output_dir = input_path.parent.parent / "output_processed"
+        output_dir.mkdir(exist_ok=True)
+        output_path = str(output_dir / f"{input_path.stem}_processed.jsonl")
     
     # Save JSONL
     save_jsonl(events, output_path)

@@ -1,5 +1,5 @@
 # view_overlay.py - Viewport overlay for displaying object ID labels above prims
-
+# overlay core logic
 import omni.ui as ui
 import omni.ui.scene as sc
 import omni.usd

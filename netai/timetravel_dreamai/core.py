@@ -505,19 +505,19 @@ class TimeTravelCore:
             from pathlib import Path
             import json
             
-            # Get Events directory path
+            # Get outputs_positions directory path
             current_file_dir = Path(__file__).parent
-            events_dir = current_file_dir / "Events"
+            outputs_positions_dir = current_file_dir / "outputs_positions"
             
-            if not events_dir.exists():
-                carb.log_info("[TimeTravel] Events directory not found")
+            if not outputs_positions_dir.exists():
+                carb.log_info("[TimeTravel] outputs_positions directory not found")
                 return False
             
             # Find all positions.jsonl files
-            position_files = list(events_dir.glob("*_positions.jsonl"))
+            position_files = list(outputs_positions_dir.glob("*_positions.jsonl"))
             
             if not position_files:
-                carb.log_info("[TimeTravel] No position files found in Events directory")
+                carb.log_info("[TimeTravel] No position files found in outputs_positions directory")
                 return False
             
             # Use the most recent file (by modification time)
@@ -749,8 +749,10 @@ class TimeTravelCore:
             vlm_data = load_json(str(json_path))
             events = consolidate_events(vlm_data, base_date="2025-01-01")
             
-            # Save processed JSONL to outputs directory
-            output_jsonl = json_path.parent / f"{json_path.stem}_processed.jsonl"
+            # Save processed JSONL to output_processed directory (same level as outputs)
+            output_processed_dir = json_path.parent.parent / "output_processed"
+            output_processed_dir.mkdir(exist_ok=True)
+            output_jsonl = output_processed_dir / f"{json_path.stem}_processed.jsonl"
             save_jsonl(events, str(output_jsonl))
             
             carb.log_info(f"[TimeTravel] JSONL saved: {output_jsonl}")
@@ -765,11 +767,11 @@ class TimeTravelCore:
                 carb.log_error("[TimeTravel] No position data extracted")
                 return False
             
-            # Step 3: Create Events directory and save position data
-            events_dir = json_path.parent.parent / "Events"
-            events_dir.mkdir(exist_ok=True)
+            # Step 3: Create outputs_positions directory and save position data (same level as outputs)
+            outputs_positions_dir = json_path.parent.parent / "outputs_positions"
+            outputs_positions_dir.mkdir(exist_ok=True)
             
-            position_jsonl = events_dir / f"{json_path.stem}_positions.jsonl"
+            position_jsonl = outputs_positions_dir / f"{json_path.stem}_positions.jsonl"
             
             with open(position_jsonl, 'w', encoding='utf-8') as f:
                 for entry in position_data:
