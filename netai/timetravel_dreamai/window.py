@@ -113,7 +113,7 @@ class TimeTravelWindow:
                     ui.Line(style={"color": 0xFF666666})
                 
                 # Time slider
-                ui.Label("Timeline:", style={"font_size": 14, "font_weight": "bold"})
+                ui.Label("Timeline Slider:", style={"font_size": 16, "font_weight": "bold"})
                 with ui.HStack(height=30):
                     ui.Spacer(width=10)
                     self._time_slider = ui.FloatSlider(min=0.0, max=1.0)

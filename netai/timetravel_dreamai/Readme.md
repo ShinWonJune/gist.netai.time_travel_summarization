@@ -1,7 +1,7 @@
 # Time Travel Summarization Extension
 
-이 문서는 **Time Travel Summarization Framework**를 구현한 **Time_travel_Summarization** Extension의 사용 설명서입니다.  
-본 프레임워크는 시계열 궤적 데이터를 활용하여 디지털트윈의 과거 상태를 복원하고, 이를 기반으로 **Event-based Summarization** (현재 '충돌' 이벤트 지원)을 생성합니다.
+이 문서는  **Time Travel Summarization Framework**를 구현한 **Time_travel_Summarization** Extension의 사용 설명서입니다.  
+본 프레임워크는 Dream-AI_Plus_Twin.usd를 기반으로 구현되었으며 시계열 궤적 데이터를 활용하여 디지털트윈의 과거 상태를 복원하고, 이를 기반으로 **Event-based Summarization** (현재 '충돌' 이벤트 지원)을 생성합니다.
 
 > **Extension ID:** `netai.timetravel_dreamai`
 > *(Extension의 초기 개발 명칭인 `netai.timetravel_dreamai`가 유지됨.)*
@@ -40,7 +40,7 @@ python utils/trajectory_data_generater_XAI_Studio.py
 ---
 ### 2. Config 설정
 
-`config.json` (또는 관련 설정 파일)에서 다음 항목을 설정.
+`netai/timetravel_dreamai/config.json` (또는 관련 설정 파일)에서 다음 항목을 설정.
 *   **data_path**: 생성된 궤적 데이터(.csv) 경로 지정
 *   **astronaut_usd**: Time Travel 객체로 사용할 USD 파일 경로 지정 (현재는 Astronaut USD 파일 사용 중)
 *   **auto_generate**: `true` 이면 Extension 초기화시 time travel 객체 자동 생성 (data_path의 objectID 수 만큼 생성)
@@ -54,9 +54,11 @@ USD Composer 실행 후 `Extension` 창에서 **Time Travel Summarization**을 �
 
 **기능:** 시계열 데이터를 기반으로 과거 상태를 재현하고 탐색.
 *   **자동 객체 생성**: 데이터 내 ID 개수만큼 객체(Astronaut) 생성 및 매핑.
+*   **Dataset Range**: 시계열 데이터의 시작 timestamp와 끝 timestamp 표시.
 *   **Go**: 특정 Timestamp 시점으로 즉시 이동.
-*   **Time Scroll**: 타임바를 통한 선형적 시점 조절.
+*   **Stage Time**: 현재 재현된 디지털트윈의 시간 표시.
 *   **Play/Speed**: 시간 흐름에 따른 재생 및 속도 조절.
+*   **Timeline slider**: 타임바를 통한 선형적 시점 조절.
 
 > **구현 파일:** `core.py`, `window.py`
 ---

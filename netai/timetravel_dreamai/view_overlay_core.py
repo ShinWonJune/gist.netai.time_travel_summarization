@@ -1,4 +1,4 @@
-# view_overlay.py - Viewport overlay for displaying object ID labels above prims
+# view_overlay_core.py - Viewport overlay for displaying object ID labels above prims
 # overlay core logic
 import omni.ui as ui
 import omni.ui.scene as sc
@@ -246,13 +246,9 @@ class ViewOverlay:
         
         self._stage_event_sub = None
         self._update_sub = None
-        
-        # Clean up 3D scene view
-        if self._scene_view:
-            self._viewport_window.viewport_api.remove_scene_view(self._scene_view)
-        
-        self._scene_view = None
-        self._manipulators = []
+
+        # Clean up scene components (manipulators, scene view)
+        self._cleanup_scene()
         
         # Clean up time display
         if self._time_frame:
@@ -292,12 +288,18 @@ class ViewOverlay:
         # Stop update subscription
         self._update_sub = None
         
-        # Clear manipulators
+        # Explicitly invalidate manipulators
+        if self._manipulators:
+            for manipulator in self._manipulators:
+                if hasattr(manipulator, "invalidate"):
+                    manipulator.invalidate()
         self._manipulators = []
         
         # Remove and clear scene view
         if self._scene_view:
-            self._viewport_window.viewport_api.remove_scene_view(self._scene_view)
+            self._scene_view.visible = False
+            if self._viewport_window and hasattr(self._viewport_window, "viewport_api"):
+                self._viewport_window.viewport_api.remove_scene_view(self._scene_view)
             self._scene_view = None
         
         carb.log_info("[ViewOverlay] Scene view cleaned up")
