@@ -119,7 +119,7 @@ VLM의 추론 성능을 극대화하기 위해 디지털트윈 환경을 조정�
 Movie Capture의 고정된 캡쳐 FPS 특성상, 원하는 재생 속도의 동영상을 얻기 위해 **Time Travel 재생 속도 조절**이 필요함.
 
 *   **설정 값**:
-    *   **Camera prim name**: `BEV_cam` 
+    *   **Camera prim name**: 장면(Scene)을 추출할 카메라를 선택.
     *   **Frame rate**: 30 FPS
     *   **Capture range(Seconds) End**: 생성할 영상의 길이(초) 선택
     *   **Resolution**: 532 x 280 (빠른 추론속도와 reshape 과정에서의 정보 손실 방지를 위함. 변경 가능.)

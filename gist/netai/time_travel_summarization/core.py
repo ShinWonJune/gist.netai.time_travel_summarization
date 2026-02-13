@@ -36,12 +36,91 @@ class TimeTravelCore:
         
         # Event camera control
         self._event_positions = {}  # {timestamp_str: (x, y, z)}
-        self._bev_camera_path = "/World/example_camera"  # BEV camera path
-        self._bev_camera_height = 1602.28  # Fixed camera height
-        self._bev_camera_rotation = (0.113508, 90.00041, 89.7861)  # Fixed rotation (YXZ)
+        self._summarization_camera_path = "/World/summarization_camera"  # Summarization camera path
+        
+        # Camera settings from example_camera in forcamera.usda
+        self._summarization_camera_start_position = (332.2, 1602.28, -2113)
+        self._summarization_camera_rotation = (-0.012842645866697922, 89.99956531948999, 88.06146995128398)  # RotateYXZ
+        self._summarization_camera_focal_length = 18.147562
+        self._summarization_camera_focus_distance = 400.0
+        self._summarization_camera_clipping_range = (1.0, 10000000.0)
+        self._summarization_camera_height = 1602.28  # Fixed camera height for event tracking
         
         self._usd_context = omni.usd.get_context()
         self._stage = None
+        
+        # Create summarization camera on initialization
+        self._create_summarization_camera()
+        
+    def _create_summarization_camera(self):
+        """Create summarization camera if it doesn't exist, matching example_camera settings."""
+        if not self._stage:
+            self._stage = self._usd_context.get_stage()
+        
+        if not self._stage:
+            return
+
+        # Check if camera already exists
+        camera_prim = self._stage.GetPrimAtPath(self._summarization_camera_path)
+        if camera_prim.IsValid():
+            carb.log_info(f"[TimeTravel] Summarization camera already exists at {self._summarization_camera_path}")
+            return
+            
+        # Create Camera with API schemas
+        from pxr import Sdf
+        camera_prim = UsdGeom.Camera.Define(self._stage, self._summarization_camera_path)
+        
+        # Apply API schemas for exposure control (matching example_camera)
+        prim = camera_prim.GetPrim()
+        prim.ApplyAPI("OmniRtxCameraAutoExposureAPI_1")
+        prim.ApplyAPI("OmniRtxCameraExposureAPI_1")
+        
+        # Set camera properties
+        camera_prim.GetClippingRangeAttr().Set(Gf.Vec2f(
+            self._summarization_camera_clipping_range[0],
+            self._summarization_camera_clipping_range[1]
+        ))
+        camera_prim.GetFocalLengthAttr().Set(self._summarization_camera_focal_length)
+        camera_prim.GetFocusDistanceAttr().Set(self._summarization_camera_focus_distance)
+        
+        # Set exposure properties
+        prim.CreateAttribute("exposure:responsivity", Sdf.ValueTypeNames.Float).Set(1.1026709)
+        prim.CreateAttribute("exposure:time", Sdf.ValueTypeNames.Float).Set(0.02)
+        
+        # Set transform using standard order: Translate -> Rotate -> Scale
+        xformable = UsdGeom.Xformable(camera_prim)
+        
+        # 1. Translate
+        translate_op = xformable.AddTranslateOp()
+        translate_op.Set(Gf.Vec3d(
+            self._summarization_camera_start_position[0],
+            self._summarization_camera_start_position[1],
+            self._summarization_camera_start_position[2]
+        ))
+        
+        # 2. Rotate (YXZ order)
+        rotate_op = xformable.AddRotateYXZOp()
+        rotate_op.Set(Gf.Vec3f(
+            self._summarization_camera_rotation[0],
+            self._summarization_camera_rotation[1],
+            self._summarization_camera_rotation[2]
+        ))
+        
+        # 3. Scale
+        scale_op = xformable.AddScaleOp()
+        scale_op.Set(Gf.Vec3f(1.0, 1.0, 1.0))
+        
+        # Explicitly set xformOpOrder
+        xformable.SetXformOpOrder([
+            translate_op,
+            rotate_op,
+            scale_op
+        ])
+        
+        # Set visibility to invisible initially (matching example_camera)
+        camera_prim.GetVisibilityAttr().Set("invisible")
+        
+        carb.log_info(f"[TimeTravel] Created Summarization Camera at {self._summarization_camera_path}")
         
     def load_config(self, config_path: str) -> bool:
         """Load configuration from JSON file."""
@@ -381,9 +460,9 @@ class TimeTravelCore:
             event_time = self._parse_timestamp(event_timestamp)
             self.set_current_time(event_time)
             
-            # Move BEV camera to event position if available
+            # Move Summarization camera to event position if available
             if self._use_event_summary and event_timestamp in self._event_positions:
-                self._move_bev_camera_to_event(event_timestamp)
+                self._move_summarization_camera_to_event(event_timestamp)
         except Exception as e:
             carb.log_error(f"[TimeTravel] Failed to parse event timestamp: {event_timestamp}")
     
@@ -441,9 +520,9 @@ class TimeTravelCore:
         """Get list of event timestamps (API for future AI integration)."""
         return self._event_summary.copy()
     
-    def _move_bev_camera_to_event(self, timestamp: str):
+    def _move_summarization_camera_to_event(self, timestamp: str):
         """
-        Move BEV camera to event position.
+        Move Summarization camera to event position.
         Uses object's x and z coordinates, maintains fixed height and rotation.
         
         Args:
@@ -459,24 +538,27 @@ class TimeTravelCore:
             if not self._stage:
                 return
             
+            # Ensure camera exists
+            self._create_summarization_camera()
+            
             # Get camera prim
-            camera_prim = self._stage.GetPrimAtPath(self._bev_camera_path)
+            camera_prim = self._stage.GetPrimAtPath(self._summarization_camera_path)
             if not camera_prim or not camera_prim.IsValid():
-                carb.log_warn(f"[TimeTravel] Camera not found: {self._bev_camera_path}")
+                carb.log_warn(f"[TimeTravel] Camera not found: {self._summarization_camera_path}")
                 return
             
             # Get object position from event
             obj_x, obj_y, obj_z = self._event_positions[timestamp]
             
             # Set camera position: use object's x and z, fixed camera height
-            camera_position = Gf.Vec3d(obj_x, self._bev_camera_height, obj_z)
+            camera_position = Gf.Vec3d(obj_x, self._summarization_camera_height, obj_z)
             
             # Get xformable
             xformable = UsdGeom.Xformable(camera_prim)
             if not xformable:
                 return
             
-            # Update translate operation
+            # Update translate operation (first op in our ordered list)
             translate_op = None
             for op in xformable.GetOrderedXformOps():
                 if op.GetOpType() == UsdGeom.XformOp.TypeTranslate:
@@ -484,14 +566,15 @@ class TimeTravelCore:
                     break
             
             if not translate_op:
+                # Fallback: create translate op if missing
                 translate_op = xformable.AddTranslateOp()
             
             translate_op.Set(camera_position)
             
-            carb.log_info(f"[TimeTravel] BEV camera moved to event at ({obj_x:.1f}, {self._bev_camera_height:.1f}, {obj_z:.1f})")
+            carb.log_info(f"[TimeTravel] Summarization camera moved to event at ({obj_x:.1f}, {self._summarization_camera_height:.1f}, {obj_z:.1f})")
             
         except Exception as e:
-            carb.log_error(f"[TimeTravel] Failed to move BEV camera: {e}")
+            carb.log_error(f"[TimeTravel] Failed to move Summarization camera: {e}")
     
     def load_events_from_positions_jsonl(self) -> bool:
         """
