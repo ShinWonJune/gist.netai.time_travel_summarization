@@ -38,13 +38,14 @@ class TimeTravelCore:
         self._event_positions = {}  # {timestamp_str: (x, y, z)}
         self._summarization_camera_path = "/World/summarization_camera"  # Summarization camera path
         
-        # Camera settings from example_camera in forcamera.usda
+        # Camera settings for summarization camera
         self._summarization_camera_start_position = (332.2, 1602.28, -2113)
         self._summarization_camera_rotation = (-0.012842645866697922, 89.99956531948999, 88.06146995128398)  # RotateYXZ
         self._summarization_camera_focal_length = 18.147562
         self._summarization_camera_focus_distance = 400.0
         self._summarization_camera_clipping_range = (1.0, 10000000.0)
         self._summarization_camera_height = 1602.28  # Fixed camera height for event tracking
+        # focal_length와 height를 조절하여 적절한 뷰포인트 확보
         
         self._usd_context = omni.usd.get_context()
         self._stage = None

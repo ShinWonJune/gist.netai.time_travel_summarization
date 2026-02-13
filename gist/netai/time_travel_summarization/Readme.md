@@ -186,6 +186,7 @@ core.py 에서 event_post_processing_core.py 를 import하여 데이터를 가�
 
 **사용법:**
 *  Time Travel Window의 **Event based summary mode** 체크.
+*  Viewpoint를 생성하는 Camera를 "summarization_camera"로 변경. (Extension 초기화 시 자동 생성됨)
 *  **Play**: 이벤트 리스트를 순회하며, 이벤트 발생 구간만 자동 재생.
     *   재생 길이: `core.py`의 `_event_playback_duration` 설정값 (기본 1초).
     *   화면 이동: 이벤트 발생 시공간(위치+시간)으로 Viewport 자동 이동.
