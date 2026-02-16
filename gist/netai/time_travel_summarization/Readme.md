@@ -3,9 +3,6 @@
 이 문서는  **Time Travel Summarization Framework**를 구현한 **Time_travel_Summarization** Extension의 사용 설명서입니다.
 본 프레임워크는 Dream-AI_Plus_Twin.usd를 기반으로 구현되었으며 시계열 궤적 데이터를 활용하여 디지털트윈의 과거 상태를 복원하고, 이를 기반으로 **Event-based Summarization** (현재 '충돌' 이벤트 지원)을 생성합니다.
 
-> **Extension ID:** `netai.timetravel_dreamai`
-> *(Extension의 초기 개발 명칭인 `netai.timetravel_dreamai`가 유지됨.)*
-
 ## 📝 Note: 용어 및 구조 정의
 
 *   **Time Travel의 정의**:
