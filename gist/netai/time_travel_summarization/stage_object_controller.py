@@ -1,0 +1,147 @@
+from typing import Dict, Optional, Tuple
+
+import carb
+import omni.usd
+from pxr import Gf, UsdGeom
+
+
+class StageObjectController:
+    def __init__(self, camera_path: str = "/World/summarization_camera"):
+        self._usd_context = omni.usd.get_context()
+        self._camera_path = camera_path
+        self._camera_start_position = (332.2, 1602.28, -2113)
+        self._camera_rotation = (-0.012842645866697922, 89.99956531948999, 88.06146995128398)
+        self._camera_focal_length = 18.147562
+        self._camera_focus_distance = 400.0
+        self._camera_clipping_range = (1.0, 10000000.0)
+        self._camera_height = 1602.28
+
+    def get_stage(self):
+        return self._usd_context.get_stage()
+
+    def ensure_summarization_camera(self):
+        stage = self.get_stage()
+        if not stage:
+            return
+
+        camera_prim = stage.GetPrimAtPath(self._camera_path)
+        if camera_prim.IsValid():
+            return
+
+        from pxr import Sdf
+
+        camera_prim = UsdGeom.Camera.Define(stage, self._camera_path)
+        prim = camera_prim.GetPrim()
+        prim.ApplyAPI("OmniRtxCameraAutoExposureAPI_1")
+        prim.ApplyAPI("OmniRtxCameraExposureAPI_1")
+        camera_prim.GetClippingRangeAttr().Set(Gf.Vec2f(*self._camera_clipping_range))
+        camera_prim.GetFocalLengthAttr().Set(self._camera_focal_length)
+        camera_prim.GetFocusDistanceAttr().Set(self._camera_focus_distance)
+        prim.CreateAttribute("exposure:responsivity", Sdf.ValueTypeNames.Float).Set(1.1026709)
+        prim.CreateAttribute("exposure:time", Sdf.ValueTypeNames.Float).Set(0.02)
+
+        xformable = UsdGeom.Xformable(camera_prim)
+        translate_op = xformable.AddTranslateOp()
+        rotate_op = xformable.AddRotateYXZOp()
+        scale_op = xformable.AddScaleOp()
+        translate_op.Set(Gf.Vec3d(*self._camera_start_position))
+        rotate_op.Set(Gf.Vec3f(*self._camera_rotation))
+        scale_op.Set(Gf.Vec3f(1.0, 1.0, 1.0))
+        xformable.SetXformOpOrder([translate_op, rotate_op, scale_op])
+        camera_prim.GetVisibilityAttr().Set("invisible")
+
+    def update_stage_objects(self, prim_map: Dict[str, str], data: Dict[str, Tuple[float, float, float]]):
+        stage = self.get_stage()
+        if not stage or not data:
+            return
+
+        for objid, prim_path in prim_map.items():
+            if objid not in data:
+                continue
+
+            prim = stage.GetPrimAtPath(prim_path)
+            if not prim or not prim.IsValid():
+                continue
+
+            xformable = UsdGeom.Xformable(prim)
+            translate_op = None
+            for op in xformable.GetOrderedXformOps():
+                if op.GetOpType() == UsdGeom.XformOp.TypeTranslate:
+                    translate_op = op
+                    break
+
+            if not translate_op:
+                translate_op = xformable.AddTranslateOp()
+
+            x, y, z = data[objid]
+            translate_op.Set(Gf.Vec3d(x, y, z))
+
+    def clear_timetravel_objects(self):
+        stage = self.get_stage()
+        if not stage:
+            return
+
+        parent_prim = stage.GetPrimAtPath("/World/TimeTravel_Objects")
+        if parent_prim and parent_prim.IsValid():
+            for child in parent_prim.GetChildren():
+                stage.RemovePrim(child.GetPath())
+
+    def create_astronaut_prim(self, index: int, astronaut_usd: str) -> str:
+        stage = self.get_stage()
+        if not stage or not astronaut_usd:
+            return ""
+
+        parent_path = "/World/TimeTravel_Objects"
+        if not stage.GetPrimAtPath(parent_path):
+            stage.DefinePrim(parent_path, "Xform")
+
+        prim_path = f"{parent_path}/Astronaut{index:03d}"
+        prim = stage.DefinePrim(prim_path, "Xform")
+
+        from pxr import Sdf
+
+        prim.GetReferences().AddReference(assetPath=astronaut_usd, primPath=Sdf.Path("/Root"))
+        xformable = UsdGeom.Xformable(prim)
+        translate_op = xformable.AddTranslateOp()
+        rotate_xyz_op = xformable.AddRotateXYZOp()
+        scale_op = xformable.AddScaleOp()
+        translate_op.Set(Gf.Vec3d(0, 0, 0))
+        rotate_xyz_op.Set(Gf.Vec3f(-90.0, 0.0, 0.0))
+        scale_op.Set(Gf.Vec3f(1.0, 1.0, 1.0))
+        return prim_path
+
+    def hide_all_cameras(self):
+        stage = self.get_stage()
+        if not stage:
+            return
+
+        for prim in stage.Traverse():
+            if prim.IsA(UsdGeom.Camera):
+                UsdGeom.Imageable(prim).MakeInvisible()
+
+    def move_camera_to_event(self, event_position: Optional[Tuple[float, float, float]]):
+        if not event_position:
+            return
+
+        stage = self.get_stage()
+        if not stage:
+            return
+
+        self.ensure_summarization_camera()
+        camera_prim = stage.GetPrimAtPath(self._camera_path)
+        if not camera_prim or not camera_prim.IsValid():
+            carb.log_warn(f"[TimeTravel] Camera not found: {self._camera_path}")
+            return
+
+        xformable = UsdGeom.Xformable(camera_prim)
+        translate_op = None
+        for op in xformable.GetOrderedXformOps():
+            if op.GetOpType() == UsdGeom.XformOp.TypeTranslate:
+                translate_op = op
+                break
+
+        if not translate_op:
+            translate_op = xformable.AddTranslateOp()
+
+        obj_x, _obj_y, obj_z = event_position
+        translate_op.Set(Gf.Vec3d(obj_x, self._camera_height, obj_z))

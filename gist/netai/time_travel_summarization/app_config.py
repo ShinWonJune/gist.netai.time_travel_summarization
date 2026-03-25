@@ -1,0 +1,45 @@
+import json
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Dict, List
+
+
+@dataclass
+class ExtensionConfig:
+    config_path: Path
+    data_path: str = "./data/merged_trajectory.csv"
+    auto_generate: bool = False
+    astronaut_usd: str = ""
+    prim_map: Dict[str, str] = field(default_factory=dict)
+    event_summary: List[str] = field(default_factory=list)
+
+    @property
+    def config_dir(self) -> Path:
+        return self.config_path.parent
+
+    @classmethod
+    def from_file(cls, config_path: str) -> "ExtensionConfig":
+        path = Path(config_path)
+        with open(path, "r", encoding="utf-8") as file:
+            raw = json.load(file)
+
+        return cls(
+            config_path=path,
+            data_path=raw.get("data_path", "./data/merged_trajectory.csv"),
+            auto_generate=raw.get("auto_generate", False),
+            astronaut_usd=raw.get("astronaut_usd", ""),
+            prim_map=dict(raw.get("prim_map", {})),
+            event_summary=list(raw.get("event_summary", [])),
+        )
+
+    def resolve_from_config(self, value: str) -> Path:
+        path = Path(value)
+        if path.is_absolute():
+            return path
+        return self.config_dir / value.lstrip("./")
+
+    def resolve_data_path(self, module_dir: Path) -> Path:
+        path = Path(self.data_path)
+        if path.is_absolute():
+            return path
+        return module_dir / self.data_path.lstrip("./")
