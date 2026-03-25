@@ -1,7 +1,7 @@
 # VLM Server 실행 가이드
 
 이 문서는 Time Travel Summarization Extension 동작을 위한 VLM 서버 실행 방법을 설명함.
-VLM 서버는 **VLM Container**와 **Video Process Pipeline (NVIDIA VSS)** 두 가지 컨테이너로 구성됨.
+VLM 서버는 **VLM Container**와 **Video Process Pipeline (NVIDIA VSS 2.4.0)** 두 가지 컨테이너로 구성됨.
 
 *   **하드웨어 요구사항**:
     *   GPU: SV4000-2 서버 기준 L40 또는 A100 40GB 1대 권장 (Qwen3-VL-8B 모델 기준).
