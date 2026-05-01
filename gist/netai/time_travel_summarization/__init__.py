@@ -10,5 +10,6 @@
 
 try:
     from .extension import *
-except Exception:
-    pass
+except ModuleNotFoundError as error:
+    if not str(error).startswith("No module named 'omni"):
+        raise

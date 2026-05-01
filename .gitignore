@@ -11,6 +11,21 @@ outputs_data4/
 outputs_data5_longones/
 compare_outputs/
 
+gist/netai/time_travel_summarization/artifacts/
+gist/netai/time_travel_summarization/__pycache__/
+gist/netai/time_travel_summarization/utils/__pycache__/
+gist/netai/time_travel_summarization/tests/__pycache__/
 vlm_outputs/
 
 OMNIVERSE_SDK_IMPROVEMENTS.md
+
+.omc/
+.omx/
+.codex
+
+#refactoring docs
+PROJECT_REVIEW_AND_REFACTORING_PLAN.md
+REPOSITORY_PROFESSIONALIZATION_PLAN.md
+RESEARCH_SUMMARY.md
+STAGE_ACCESS_AND_LIFECYCLE_ANALYSIS.md
+REFACTORING_EXECUTION_LOG.md

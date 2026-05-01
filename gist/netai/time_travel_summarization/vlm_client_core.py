@@ -11,6 +11,8 @@ from typing import Optional, Dict, Any
 import carb
 from datetime import datetime
 
+from .paths import ExtensionPaths
+
 
 class VLMClientCore:
     """Core logic for VLM Client."""
@@ -21,14 +23,10 @@ class VLMClientCore:
         self._current_video_id = None
         self._last_upload_response = None
         self._last_generation_response = None
-        
-        # Default paths
-        self._videos_base_path = Path(__file__).parent / "video"
-        self._outputs_base_path = Path(__file__).parent / "vlm_outputs"
-        
-        # Ensure directories exist
-        self._videos_base_path.mkdir(exist_ok=True)
-        self._outputs_base_path.mkdir(exist_ok=True)
+
+        self._paths = ExtensionPaths(Path(__file__).parent)
+        self._videos_base_path = self._paths.videos_dir
+        self._outputs_base_path = self._paths.vlm_outputs_dir
         
         # Initialize client
         self._initialize_client()

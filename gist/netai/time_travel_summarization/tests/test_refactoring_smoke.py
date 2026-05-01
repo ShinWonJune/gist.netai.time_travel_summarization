@@ -3,6 +3,7 @@ from pathlib import Path
 import unittest
 
 from gist.netai.time_travel_summarization.app_config import ExtensionConfig
+from gist.netai.time_travel_summarization.paths import ExtensionPaths
 from gist.netai.time_travel_summarization.playback_controller import PlaybackController
 from gist.netai.time_travel_summarization.trajectory_repository import TrajectoryRepository
 
@@ -34,6 +35,13 @@ class RefactoringSmokeTest(unittest.TestCase):
         playback.set_progress(2.0)
 
         self.assertEqual(playback.get_current_time(), end)
+
+    def test_extension_paths_uses_artifacts_root(self):
+        module_dir = Path(__file__).resolve().parents[1]
+        paths = ExtensionPaths(module_dir)
+
+        self.assertTrue(str(paths.videos_dir).endswith("artifacts\\video"))
+        self.assertTrue(str(paths.vlm_outputs_dir).endswith("artifacts\\vlm_outputs"))
 
 
 if __name__ == "__main__":

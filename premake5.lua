@@ -7,5 +7,5 @@ project_ext (ext)
 repo_build.prebuild_link {
     { "data", ext.target_dir.."/data" },
     { "docs", ext.target_dir.."/docs" },
-    { "netai", ext.target_dir.."/netai" },
+    { "gist", ext.target_dir.."/gist" },
 }

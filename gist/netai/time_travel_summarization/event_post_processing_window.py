@@ -2,7 +2,11 @@
 
 import omni.ui as ui
 import carb
+import threading
 from pathlib import Path
+
+from .paths import ExtensionPaths
+from .ui_task_dispatcher import UiTaskDispatcher
 
 
 class EventProcessingWindow:
@@ -12,6 +16,8 @@ class EventProcessingWindow:
         self._core = core
         self._ext_id = ext_id
         self._window = None
+        self._ui_dispatcher = UiTaskDispatcher("EventProcessingWindowUiDispatcher")
+        self._paths = ExtensionPaths(Path(__file__).parent)
         
         # UI state
         self._json_filename_model = ui.SimpleStringModel("video_18_20251113_232343.json")
@@ -35,7 +41,7 @@ class EventProcessingWindow:
                 with ui.VStack(spacing=5):
                     ui.Label("Input JSON File:", height=20)
                     with ui.HStack(spacing=5):
-                        ui.Label("vlm_outputs/", width=60,style={"font_size": 16} )
+                        ui.Label("artifacts/vlm_outputs/", width=150,style={"font_size": 16} )
                         ui.StringField(model=self._json_filename_model, height=25)
                     ui.Label("(VLM output JSON file)", height=15, style={"color": 0xFF888888, "font_size": 16})
                 
@@ -67,8 +73,7 @@ class EventProcessingWindow:
             return
         
         # Construct full path
-        base_dir = Path(__file__).parent
-        json_path = base_dir / "vlm_outputs" / json_filename
+        json_path = self._paths.resolve_input_file("vlm_outputs", json_filename)
         
         if not json_path.exists():
             self._update_status(f"Error: File not found: {json_path}", error=True)
@@ -76,28 +81,20 @@ class EventProcessingWindow:
         
         self._update_status("Processing events...", processing=True)
         self._process_button.enabled = False
-        
-        try:
-            # Call core to process events
-            success = self._core.process_event_json(str(json_path))
-            
-            if success:
-                self._update_status("Events processed successfully!\n" + 
-                                  f"- JSONL saved\n" +
-                                  f"- Position data extracted\n" +
-                                  f"Check vlm_outputs/ folder for results.", 
-                                  success=True)
-            else:
-                self._update_status("✗ Event processing failed. Check console for details.", error=True)
-        
-        except Exception as e:
-            self._update_status(f"✗ Error: {str(e)}", error=True)
-            carb.log_error(f"[EventWindow] Processing error: {e}")
-            import traceback
-            carb.log_error(traceback.format_exc())
-        
-        finally:
-            self._process_button.enabled = True
+
+        def process_async():
+            try:
+                success = self._core.process_event_json(str(json_path))
+                self._ui_dispatcher.submit(lambda: self._apply_process_result(success))
+            except Exception as e:
+                carb.log_error(f"[EventWindow] Processing error: {e}")
+                import traceback
+                carb.log_error(traceback.format_exc())
+                error_message = str(e)
+                self._ui_dispatcher.submit(lambda message=error_message: self._apply_process_error(message))
+
+        thread = threading.Thread(target=process_async, daemon=True)
+        thread.start()
     
     def _update_status(self, message: str, error=False, success=False, processing=False):
         """Update status label with color coding."""
@@ -112,9 +109,30 @@ class EventProcessingWindow:
                 self._status_label.style = {"color": 0xFFFFAA44}
             else:
                 self._status_label.style = {"color": 0xFFCCCCCC}
+
+    def _apply_process_result(self, success: bool):
+        self._process_button.enabled = True
+        if success:
+            self._update_status(
+                "Events processed successfully!\n"
+                "- JSONL saved\n"
+                "- Position data extracted\n"
+                "Check artifacts folders for results.",
+                success=True,
+            )
+            return
+
+        self._update_status("✗ Event processing failed. Check console for details.", error=True)
+
+    def _apply_process_error(self, message: str):
+        self._process_button.enabled = True
+        self._update_status(f"✗ Error: {message}", error=True)
     
     def destroy(self):
         """Clean up the window."""
+        if self._ui_dispatcher:
+            self._ui_dispatcher.shutdown()
+            self._ui_dispatcher = None
         if self._window:
             self._window.destroy()
             self._window = None

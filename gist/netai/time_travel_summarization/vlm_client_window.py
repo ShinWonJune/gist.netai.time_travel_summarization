@@ -4,6 +4,8 @@ import omni.ui as ui
 import carb
 import threading
 
+from .ui_task_dispatcher import UiTaskDispatcher
+
 
 class VLMClientWindow:
     """VLM Client UI Window."""
@@ -12,6 +14,7 @@ class VLMClientWindow:
         """Initialize VLM Client window."""
         self._vlm_core = vlm_core
         self._ext_id = ext_id
+        self._ui_dispatcher = UiTaskDispatcher("VLMClientWindowUiDispatcher")
         
         # Create window
         self._window = ui.Window("VLM Client", width=450, height=285)
@@ -24,7 +27,7 @@ class VLMClientWindow:
                 # Video input section
                 with ui.HStack(height=22, spacing=5):
                     ui.Label("Video:", width=50, style={"font_size": 16, "font_weight": "bold"})
-                    ui.Label("video/", width=45)
+                    ui.Label("artifacts/video/", width=120)
                     self._video_filename_field = ui.StringField()
                     self._video_filename_field.model.set_value("video_19.mp4")
                 
@@ -92,21 +95,7 @@ class VLMClientWindow:
         # Run upload in separate thread to avoid blocking UI
         def upload_async():
             success = self._vlm_core.upload_video(video_filename)
-            
-            # Update UI with results
-            self._upload_button.enabled = True
-            if success:
-                video_id = self._vlm_core.get_current_video_id()
-                self._video_id_label.text = video_id
-                self._video_id_label.style = {"color": 0xFF00AA00}
-                
-                # Enable delete and generate buttons
-                self._delete_button.enabled = True
-                self._generate_button.enabled = True
-                
-                self._update_status(f"Upload successful! ID: {video_id[:8]}...", is_error=False)
-            else:
-                self._update_status("Upload failed. Check console for details.", is_error=True)
+            self._ui_dispatcher.submit(lambda: self._apply_upload_result(success))
         
         thread = threading.Thread(target=upload_async, daemon=True)
         thread.start()
@@ -125,20 +114,7 @@ class VLMClientWindow:
         # Run delete in separate thread to avoid blocking UI
         def delete_async():
             success = self._vlm_core.delete_video()
-            
-            # Update UI with results
-            if success:
-                self._video_id_label.text = "Not uploaded"
-                self._video_id_label.style = {"color": 0xFF888888}
-                
-                # Disable generate button (delete button already disabled)
-                self._generate_button.enabled = False
-                
-                self._update_status("Video deleted successfully", is_error=False)
-            else:
-                # Re-enable delete button on failure
-                self._delete_button.enabled = True
-                self._update_status("Delete failed. Check console for details.", is_error=True)
+            self._ui_dispatcher.submit(lambda: self._apply_delete_result(success))
         
         thread = threading.Thread(target=delete_async, daemon=True)
         thread.start()
@@ -178,13 +154,7 @@ class VLMClientWindow:
                 video_filename=video_filename,
                 chunk_overlap_duration=chunk_overlap
             )
-            
-            # Update UI with results (simple assignment is thread-safe for display)
-            self._generate_button.enabled = True
-            if success and output_filename:
-                self._update_status(f"Saved: {output_filename}", is_error=False)
-            else:
-                self._update_status("Generation failed. Check console for details.", is_error=True)
+            self._ui_dispatcher.submit(lambda: self._apply_generate_result(success, output_filename))
         
         thread = threading.Thread(target=generate_async, daemon=True)
         thread.start()
@@ -199,9 +169,44 @@ class VLMClientWindow:
             self._status_label.style = {"color": 0xFFFFAA00}  # Orange
         else:
             self._status_label.style = {"color": 0xFF00AA00}  # Green
+
+    def _apply_upload_result(self, success: bool):
+        self._upload_button.enabled = True
+        if success:
+            video_id = self._vlm_core.get_current_video_id() or "Unknown"
+            self._video_id_label.text = video_id
+            self._video_id_label.style = {"color": 0xFF00AA00}
+            self._delete_button.enabled = True
+            self._generate_button.enabled = True
+            self._update_status(f"Upload successful! ID: {video_id[:8]}...", is_error=False)
+            return
+
+        self._update_status("Upload failed. Check console for details.", is_error=True)
+
+    def _apply_delete_result(self, success: bool):
+        if success:
+            self._video_id_label.text = "Not uploaded"
+            self._video_id_label.style = {"color": 0xFF888888}
+            self._generate_button.enabled = False
+            self._update_status("Video deleted successfully", is_error=False)
+            return
+
+        self._delete_button.enabled = True
+        self._update_status("Delete failed. Check console for details.", is_error=True)
+
+    def _apply_generate_result(self, success: bool, output_filename: str | None):
+        self._generate_button.enabled = True
+        if success and output_filename:
+            self._update_status(f"Saved: {output_filename}", is_error=False)
+            return
+
+        self._update_status("Generation failed. Check console for details.", is_error=True)
     
     def destroy(self):
         """Clean up the window."""
+        if self._ui_dispatcher:
+            self._ui_dispatcher.shutdown()
+            self._ui_dispatcher = None
         if self._window:
             self._window.destroy()
             self._window = None

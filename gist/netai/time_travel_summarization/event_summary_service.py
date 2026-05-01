@@ -2,22 +2,25 @@ import json
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+from .paths import ExtensionPaths
+
 
 class EventSummaryService:
     def __init__(self, module_dir: Path, repository):
         self._module_dir = module_dir
         self._repository = repository
         self._event_positions: Dict[str, Tuple[float, float, float]] = {}
+        self._paths = ExtensionPaths(module_dir)
 
     def get_event_position(self, timestamp: str):
         return self._event_positions.get(timestamp)
 
     def load_events_from_event_list(self) -> List[str]:
-        eventlist_dir = self._module_dir / "event_list"
-        if not eventlist_dir.exists():
-            return []
-
-        eventlist_files = list(eventlist_dir.glob("*_eventlist.jsonl"))
+        eventlist_files = list(self._paths.event_list_dir.glob("*_eventlist.jsonl"))
+        if not eventlist_files:
+            legacy_dir = self._module_dir / "event_list"
+            if legacy_dir.exists():
+                eventlist_files = list(legacy_dir.glob("*_eventlist.jsonl"))
         if not eventlist_files:
             return []
 
@@ -53,18 +56,14 @@ class EventSummaryService:
         vlm_data = load_json(str(source_path))
         events = consolidate_events(vlm_data, base_date="2025-01-01")
 
-        processed_dir = source_path.parent.parent / "intermediate_results"
-        processed_dir.mkdir(exist_ok=True)
-        output_jsonl = processed_dir / f"{source_path.stem}_intermediate.jsonl"
+        output_jsonl = self._paths.intermediate_results_dir / f"{source_path.stem}_intermediate.jsonl"
         save_jsonl(events, str(output_jsonl))
 
         event_list = self._generate_event_list(events)
         if not event_list:
             return False
 
-        event_list_dir = source_path.parent.parent / "event_list"
-        event_list_dir.mkdir(exist_ok=True)
-        output_eventlist = event_list_dir / f"{source_path.stem}_eventlist.jsonl"
+        output_eventlist = self._paths.event_list_dir / f"{source_path.stem}_eventlist.jsonl"
 
         with open(output_eventlist, "w", encoding="utf-8") as file:
             for entry in event_list:
