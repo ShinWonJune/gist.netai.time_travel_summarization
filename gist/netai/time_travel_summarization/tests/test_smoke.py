@@ -2,10 +2,10 @@ import datetime
 from pathlib import Path
 import unittest
 
-from gist.netai.time_travel_summarization.app_config import ExtensionConfig
-from gist.netai.time_travel_summarization.paths import ExtensionPaths
-from gist.netai.time_travel_summarization.playback_controller import PlaybackController
-from gist.netai.time_travel_summarization.trajectory_repository import TrajectoryRepository
+from gist.netai.time_travel_summarization.app.config import ExtensionConfig
+from gist.netai.time_travel_summarization.app.paths import ExtensionPaths
+from gist.netai.time_travel_summarization.playback.controller import PlaybackController
+from gist.netai.time_travel_summarization.playback.trajectory_repository import TrajectoryRepository
 
 
 class RefactoringSmokeTest(unittest.TestCase):
@@ -37,11 +37,14 @@ class RefactoringSmokeTest(unittest.TestCase):
         self.assertEqual(playback.get_current_time(), end)
 
     def test_extension_paths_uses_artifacts_root(self):
+        import os
+
         module_dir = Path(__file__).resolve().parents[1]
         paths = ExtensionPaths(module_dir)
 
-        self.assertTrue(str(paths.videos_dir).endswith("artifacts\\video"))
-        self.assertTrue(str(paths.vlm_outputs_dir).endswith("artifacts\\vlm_outputs"))
+        sep = os.sep
+        self.assertTrue(str(paths.videos_dir).endswith(f"artifacts{sep}video"))
+        self.assertTrue(str(paths.vlm_outputs_dir).endswith(f"artifacts{sep}vlm_outputs"))
 
 
 if __name__ == "__main__":

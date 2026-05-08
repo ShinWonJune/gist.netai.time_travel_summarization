@@ -5,8 +5,8 @@ import carb
 import threading
 from pathlib import Path
 
-from .paths import ExtensionPaths
-from .ui_task_dispatcher import UiTaskDispatcher
+from ..app.paths import ExtensionPaths
+from ..ui.task_dispatcher import UiTaskDispatcher
 
 
 class EventProcessingWindow:

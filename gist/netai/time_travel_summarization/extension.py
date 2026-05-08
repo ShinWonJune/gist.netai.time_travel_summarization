@@ -8,16 +8,16 @@ from pxr import Usd, UsdGeom, Gf
 import carb
 import os
 from pathlib import Path
-from .window import TimeTravelWindow
-from .core import TimeTravelCore
-from .event_post_processing_window import EventProcessingWindow
-from .vlm_client_core import VLMClientCore
-from .vlm_client_window import VLMClientWindow
+from .ui.main_window import TimeTravelWindow
+from .app.facade import TimeTravelCore
+from .event_processing.window import EventProcessingWindow
+from .vlm_client.core import VLMClientCore
+from .vlm_client.window import VLMClientWindow
 
 # Optional imports for overlay (with error handling)
 try:
-    from .view_overlay_core import ViewOverlay
-    from .view_overlay_window import OverlayControlWindow
+    from .overlay.core import ViewOverlay
+    from .overlay.window import OverlayControlWindow
     from omni.kit.viewport.utility import get_active_viewport_window
     OVERLAY_AVAILABLE = True
 except Exception as e:

@@ -4,7 +4,7 @@ import omni.ui as ui
 import carb
 import threading
 
-from .ui_task_dispatcher import UiTaskDispatcher
+from ..ui.task_dispatcher import UiTaskDispatcher
 
 
 class VLMClientWindow:

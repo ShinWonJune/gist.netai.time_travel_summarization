@@ -8,4 +8,4 @@
 # without an express license agreement from NVIDIA CORPORATION or
 # its affiliates is strictly prohibited.
 
-from .test_refactoring_smoke import *
+from .test_smoke import *

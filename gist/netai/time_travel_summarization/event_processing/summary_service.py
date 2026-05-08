@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-from .paths import ExtensionPaths
+from ..app.paths import ExtensionPaths
 
 
 class EventSummaryService:
@@ -47,7 +47,7 @@ class EventSummaryService:
         return event_timestamps
 
     def process_event_json(self, json_path: str) -> bool:
-        from .event_post_processing_core import consolidate_events, load_json, save_jsonl
+        from .core import consolidate_events, load_json, save_jsonl
 
         source_path = Path(json_path)
         if not source_path.exists():

@@ -11,7 +11,7 @@ from typing import Optional, Dict, Any
 import carb
 from datetime import datetime
 
-from .paths import ExtensionPaths
+from ..app.paths import ExtensionPaths
 
 
 class VLMClientCore:
@@ -34,12 +34,17 @@ class VLMClientCore:
     def _initialize_client(self):
         """Initialize VSS Client with presets."""
         try:
-            from .utils.VSS_client import VSSClient, PromptPreset
-            
-            # Get base URL from environment or use default
-            # VLM 서버 ip 설정.
-            # port는 video-search-and-summarization/deploy/docker/remote_llm_deployment/.env 에서 설정, BACKEND_PORT=8100         
-            base_url = os.environ.get("VIA_BACKEND", "http://10.38.38.40:8100")
+            from ..utils.VSS_client import VSSClient, PromptPreset
+
+            # VLM 서버 base URL은 VIA_BACKEND 환경변수로 지정한다.
+            # 미설정 시 localhost로 fallback하며 명시적 경고를 남긴다.
+            base_url = os.environ.get("VIA_BACKEND")
+            if not base_url:
+                base_url = "http://localhost:8100"
+                carb.log_warn(
+                    "[VLMClient] VIA_BACKEND not set; falling back to "
+                    f"{base_url}. Set VIA_BACKEND to your VSS server URL."
+                )
             
             # Define prompt presets
             presets = {

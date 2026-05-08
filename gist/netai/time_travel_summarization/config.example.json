@@ -3,7 +3,7 @@
 
   "auto_generate": true,
 
-  "astronaut_usd": "${ASTRONAUT_USD_PATH}",
+  "astronaut_usd": "omniverse://<your-nucleus-host>/Projects/<...>/Astronaut.usd",
 
   "prim_map": {}
 }

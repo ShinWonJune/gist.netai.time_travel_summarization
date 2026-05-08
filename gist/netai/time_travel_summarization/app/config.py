@@ -1,7 +1,17 @@
 import json
+import os
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List
+
+_ENV_PATTERN = re.compile(r"\$\{([^}]+)\}")
+
+
+def _expand_env(value: str) -> str:
+    if not isinstance(value, str):
+        return value
+    return _ENV_PATTERN.sub(lambda m: os.environ.get(m.group(1), ""), value)
 
 
 @dataclass
@@ -25,9 +35,9 @@ class ExtensionConfig:
 
         return cls(
             config_path=path,
-            data_path=raw.get("data_path", "./data/merged_trajectory.csv"),
+            data_path=_expand_env(raw.get("data_path", "./data/merged_trajectory.csv")),
             auto_generate=raw.get("auto_generate", False),
-            astronaut_usd=raw.get("astronaut_usd", ""),
+            astronaut_usd=_expand_env(raw.get("astronaut_usd", "")),
             prim_map=dict(raw.get("prim_map", {})),
             event_summary=list(raw.get("event_summary", [])),
         )

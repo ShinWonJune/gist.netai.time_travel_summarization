@@ -3,7 +3,7 @@ import omni.ui.scene as sc
 import omni.usd
 import carb
 
-from .view_overlay_components import PrimLabelRegistry, TimeDisplayOverlay
+from .components import PrimLabelRegistry, TimeDisplayOverlay
 
 
 class ViewOverlay:

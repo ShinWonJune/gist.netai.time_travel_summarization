@@ -1,3 +1,4 @@
+# --- Project-level resources -----------------------------------------------
 working_building.usda
 trajectory_10min_0.5s.csv
 pole_building.usda
@@ -7,23 +8,35 @@ outputs/
 outputs_data1/
 outputs_data2/
 outputs_data3/
-outputs_data4/  
+outputs_data4/
 outputs_data5_longones/
 compare_outputs/
 
+# --- Extension package artifacts (runtime outputs) -------------------------
 gist/netai/time_travel_summarization/artifacts/
-gist/netai/time_travel_summarization/__pycache__/
-gist/netai/time_travel_summarization/utils/__pycache__/
-gist/netai/time_travel_summarization/tests/__pycache__/
-vlm_outputs/
+gist/netai/time_travel_summarization/event_list/
+gist/netai/time_travel_summarization/intermediate_results/
+gist/netai/time_travel_summarization/compare_outputs/
+gist/netai/time_travel_summarization/video/
+gist/netai/time_travel_summarization/vlm_outputs/
+gist/netai/time_travel_summarization/outputs/
+gist/netai/time_travel_summarization/temp/
 
-OMNIVERSE_SDK_IMPROVEMENTS.md
+# --- Python caches ---------------------------------------------------------
+**/__pycache__/
+*.py[cod]
+*.egg-info/
 
+# --- Local tooling ---------------------------------------------------------
 .omc/
 .omx/
 .codex
+.claude/
+.vscode/
+.idea/
 
-#refactoring docs
+# --- Internal / personal docs (research-lab archive) -----------------------
+OMNIVERSE_SDK_IMPROVEMENTS.md
 PROJECT_REVIEW_AND_REFACTORING_PLAN.md
 REPOSITORY_PROFESSIONALIZATION_PLAN.md
 RESEARCH_SUMMARY.md

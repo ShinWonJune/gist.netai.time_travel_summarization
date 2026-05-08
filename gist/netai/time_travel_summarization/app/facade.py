@@ -4,11 +4,11 @@ from typing import Dict, List
 
 import carb
 
-from .app_config import ExtensionConfig
-from .event_summary_service import EventSummaryService
-from .playback_controller import PlaybackController
-from .stage_object_controller import StageObjectController
-from .trajectory_repository import TrajectoryRepository
+from .config import ExtensionConfig
+from ..event_processing.summary_service import EventSummaryService
+from ..playback.controller import PlaybackController
+from ..playback.stage_object_controller import StageObjectController
+from ..playback.trajectory_repository import TrajectoryRepository
 
 
 class TimeTravelCore:
