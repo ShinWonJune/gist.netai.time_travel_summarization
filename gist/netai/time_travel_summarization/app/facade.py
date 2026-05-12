@@ -1,21 +1,25 @@
 import datetime
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import carb
 
 from .config import ExtensionConfig
+from .paths import ExtensionPaths
 from ..event_processing.summary_service import EventSummaryService
 from ..playback.controller import PlaybackController
 from ..playback.stage_object_controller import StageObjectController
 from ..playback.trajectory_repository import TrajectoryRepository
 
 
+
+
 class TimeTravelCore:
     """Facade that preserves the existing public API while delegating to focused services."""
 
     def __init__(self):
-        self._module_dir = Path(__file__).parent
+        self._module_dir = Path(__file__).resolve().parent.parent
+        self._paths = ExtensionPaths(self._module_dir)
         self._config = None
         self._prim_map = {}
         self._repository = TrajectoryRepository()
@@ -132,6 +136,9 @@ class TimeTravelCore:
     def get_current_time(self) -> datetime.datetime:
         return self._playback.get_current_time() or datetime.datetime.now()
 
+    def get_simulation_time(self) -> Optional[datetime.datetime]:
+        return self._playback.get_current_time()
+
     def get_stage_time_string(self) -> str:
         current_time = self._playback.get_current_time()
         if current_time:
@@ -195,6 +202,10 @@ class TimeTravelCore:
         if not self._config:
             carb.log_error("[TimeTravel] Config must be loaded before auto-generation")
             return {}
+
+        if not self._config.astronaut_usd:
+            self._config.astronaut_usd = DEFAULT_ASTRONAUT_USD
+            carb.log_info(f"[TimeTravel] Using default astronaut USD: {DEFAULT_ASTRONAUT_USD}")
 
         csv_path = self._config.resolve_from_config(self._config.data_path)
         if not csv_path.exists():

@@ -14,6 +14,22 @@ def _expand_env(value: str) -> str:
     return _ENV_PATTERN.sub(lambda m: os.environ.get(m.group(1), ""), value)
 
 
+def _load_dotenv(env_path: Path) -> None:
+    if not env_path.exists():
+        return
+    for raw in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        key, sep, value = line.partition("=")
+        if not sep:
+            continue
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
 @dataclass
 class ExtensionConfig:
     config_path: Path
@@ -30,6 +46,7 @@ class ExtensionConfig:
     @classmethod
     def from_file(cls, config_path: str) -> "ExtensionConfig":
         path = Path(config_path)
+        _load_dotenv(path.parent / ".env")
         with open(path, "r", encoding="utf-8") as file:
             raw = json.load(file)
 

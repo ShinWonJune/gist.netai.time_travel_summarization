@@ -106,7 +106,9 @@ class ViewOverlay:
 
         if self._time_visible:
             try:
-                self._time_overlay.set_time_text(self._core.get_current_time().strftime("%H:%M:%S"))
+                sim_time = self._core.get_simulation_time()
+                text = sim_time.strftime("%H:%M:%S") if sim_time else "--:--:--"
+                self._time_overlay.set_time_text(text)
             except Exception as error:
                 carb.log_error(f"[ViewOverlay] Error updating time: {error}")
 
