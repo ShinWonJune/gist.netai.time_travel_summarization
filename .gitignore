@@ -35,11 +35,5 @@ gist/netai/time_travel_summarization/temp/
 .claude/
 .vscode/
 .idea/
-
-# --- Internal / personal docs (research-lab archive) -----------------------
-OMNIVERSE_SDK_IMPROVEMENTS.md
-PROJECT_REVIEW_AND_REFACTORING_PLAN.md
-REPOSITORY_PROFESSIONALIZATION_PLAN.md
-RESEARCH_SUMMARY.md
-STAGE_ACCESS_AND_LIFECYCLE_ANALYSIS.md
-REFACTORING_EXECUTION_LOG.md
+docs/
+.env
